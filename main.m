@@ -13,7 +13,7 @@ subID = str2num([subinfo{1}]);
 global name;
 name = [subinfo{2}];
 global age;
-age = str2num ([subinfo{3}]);
+age = [subinfo{3}];
 gender = str2num([subinfo{4}]);
 sub_type = [subinfo{5}];
 global Gender;
@@ -21,6 +21,11 @@ if gender == 1
     Gender = 'Male';
 else
     Gender = 'Female';
+end
+if mod(subID,2) == 1
+    subtask_type ={'0' '1' '2'};
+else
+    subtask_type = {'0' '2' '1'};
 end
 
 % subinfo=getSubInfo;
@@ -58,15 +63,15 @@ end_text = '实验结束！\n\n感谢您的参与!';
 % end
 %生成所有试次的参数矩阵
 % 输出文件打开-------------------------------------
-filefind=strcat('results\','FPS_MIT_',char(subID),'.csv');
+filefind=strcat('results\','FPS_MIT_',num2str(subID),'.csv');
 if exist(filefind,'file')==0
-    fid=fopen(['results\','FPS_MIT_',char(subID),'.csv'],'w');
+    fid=fopen(['results\','FPS_MIT_',num2str(subID),'.csv'],'w');
 else
     filev=2;
     while true
-        filefind=strcat('results\','FPS_MIT_',char(subID),'(',num2str(filev),')','.csv');
+        filefind=strcat('results\','FPS_MIT_',num2str(subID),'(',num2str(filev),')','.csv');
         if exist(filefind,'file')==0
-            fid=fopen(['results\','FPS_MIT_',char(subID),'(',num2str(filev),')','.csv'],'w');
+            fid=fopen(['results\','FPS_MIT_',num2str(subID),'(',num2str(filev),')','.csv'],'w');
             break;
         else
             filev=filev+1;
@@ -120,15 +125,15 @@ for i = 1:3
         end
         
         Screen('Flip', wptr);
-        WaitSecs(4);
+        WaitSecs(3);
         
         % 开始随机运动，即更新位置，然后重新画图，并Flip
         
         for motion_first1 = 1:frame_rate
             for pic_index = 1:8
                 motion_angle = pi*2*randperm(360, 8)/360;
-                distance_x = 50*cos(motion_angle(pic_index));
-                distance_y = 50*sin(motion_angle(pic_index));
+                distance_x = 20*cos(motion_angle(pic_index));
+                distance_y = 20*sin(motion_angle(pic_index));
                 if pic_posi{pic_index}(1) + distance_x <=0 || pic_posi{pic_index}(1) + distance_x >= wRect(3)-80
                     distance_x = -distance_x;
                 end
@@ -158,15 +163,19 @@ for i = 1:3
         %         motion_time(ii, i) = motion_time(ii, i) + motion_time(ii - 1, i);
         %     end
         % end
+        subtask_correction = 0;
+        correction = [0 0 0];
         for j = 1:3
+            if subtask_type{i}=='2'
             [y,Fs]=audioread(['audio\', num2str(subtask_number(j)),'.mp3']);
             sound(y,Fs);
+            end
             for motion_second = 1:frame_rate
             
                 for pic_index = 1:8
                     motion_angle = pi*2*randperm(360, 8)/360;
-                    distance_x = 40*cos(motion_angle(pic_index));
-                    distance_y = 40*sin(motion_angle(pic_index));
+                    distance_x = 20*cos(motion_angle(pic_index));
+                    distance_y = 20*sin(motion_angle(pic_index));
                     if pic_posi{pic_index}(1) + distance_x <=0 || pic_posi{pic_index}(1) + distance_x >= wRect(3)-80
                         distance_x = -distance_x;
                     end
@@ -183,16 +192,12 @@ for i = 1:3
                     Screen('DrawTexture', wptr, pic_present{present_index}, [],  pic_posi{present_index});
                 end
                 % 中间次任务
-                type = mod(subID,2);
-                if type==1
+
+                if subtask_type{i}=='1'
                     Screen('Framerect', wptr); %画线框
                     DrawFormattedText(wptr,num2str(subtask_number(j)),'center','center',[255,255,255]);
                 end
                 
-                if type==2
-                    % Screen('Framerect', wptr); %画线框
-                    
-                end
                 
                 [secs, keyCode, deltaSecs] = KbWait([],[] , GetSecs+0.005);
                 if sum(keyCode)~=0
@@ -207,6 +212,7 @@ for i = 1:3
                         end
 
                     end
+                    subtask_correction = sum(correction>0);
                 end
                 Screen('Flip', wptr);
             end
@@ -216,8 +222,8 @@ for i = 1:3
         for jjj = 1:time_left*frame_rate
             for pic_index = 1:8
                 motion_angle = pi*2*randperm(360, 8)/360;
-                distance_x = 40*cos(motion_angle(pic_index));
-                distance_y = 40*sin(motion_angle(pic_index));
+                distance_x = 20*cos(motion_angle(pic_index));
+                distance_y = 20*sin(motion_angle(pic_index));
                 if pic_posi{pic_index}(1) + distance_x <=0 || pic_posi{pic_index}(1) + distance_x >= wRect(3)-80
                     distance_x = -distance_x;
                 end
@@ -237,18 +243,21 @@ for i = 1:3
         end
         
         % 最终的判断
-        
-
         for iii = 1:4
             DrawFormattedText(wptr,double(animal{pic_select(pic_red(iii))}),'center','center',[0,0,0]);
             Screen('Flip', wptr);
-
+            WaitSecs(1);
             for index = 1:8
                 Screen('DrawTexture', wptr, number_present{index}, [], pic_posi{index});
             end
             Screen('Flip',wptr);
             [~, keyCode] = KbWait();
             keyRecord{iii} = keyCode;
+            if keyCode(KbName('ESCAPE'))
+                fclose(fid);
+                ShowCursor;
+                sca;
+            end
         end
 
         identity_correct = 0;
@@ -267,8 +276,8 @@ for i = 1:3
         end
 
         % 数据记录
-        
-
+        fprintf(fid,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\r\n', num2str(subID), name, Gender, age, sub_type, subtask_type{i}, 'null', num2str(identity_correct), num2str(position_correct), num2str(subtask_correction));
+        WaitSecs(1);
     end
 end
 
