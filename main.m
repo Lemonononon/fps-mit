@@ -1,152 +1,286 @@
 function main()
-    clear all;
-    global subinfo;
+clear all;
+global subinfo;
 
-    %% 输入被试信息 
-    prompt = {'编号','姓名','年龄','性别（1=男，2=女）', '类型（1-fps玩家，2-非fps玩家）'};
-    dlg_title = '被试信息';
-    num_line = [1 45;1 45;1 45;1 45;1 45];
-    def_answer = {'','','','', ''};
-    options = 'off';
-    subinfo = inputdlg(prompt,dlg_title,num_line,def_answer,options);
-    subID = str2num([subinfo{1}]);
-    global name;
-    name = [subinfo{2}];
-    global age;
-    age = str2num ([subinfo{3}]);
-    gender = str2num([subinfo{4}]);
-    type = [subinfo{5}];
-    global Gender;
-    if gender == 1
-        Gender = 'Male';
-    else
-        Gender = 'Female';
-    end
+%% 输入被试信息
+prompt = {'编号','姓名','年龄','性别（1=男，2=女）', '类型（1-fps玩家，2-非fps玩家）'};
+dlg_title = '被试信息';
+num_line = [1 45;1 45;1 45;1 45;1 45];
+def_answer = {'','','','', ''};
+options = 'off';
+subinfo = inputdlg(prompt,dlg_title,num_line,def_answer,options);
+subID = str2num([subinfo{1}]);
+global name;
+name = [subinfo{2}];
+global age;
+age = str2num ([subinfo{3}]);
+gender = str2num([subinfo{4}]);
+sub_type = [subinfo{5}];
+global Gender;
+if gender == 1
+    Gender = 'Male';
+else
+    Gender = 'Female';
+end
 
-    % subinfo=getSubInfo;
-    Screen('Preference', 'SkipSyncTests', 1);
-    HideCursor;
+% subinfo=getSubInfo;
+Screen('Preference', 'SkipSyncTests', 1);
+HideCursor;
 
-    %打开窗口，设置参数
-    screenNumber=max(Screen('Screens'));
-    %Screen('Resolution',screenNumber,1024,768,60);
-    [wptr, wRect]=Screen('OpenWindow',screenNumber, 128,[],32,2);
-    Screen(wptr,'BlendFunction',GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    [cx,cy]=WindowCenter(wptr);
-    frame_rate=Screen('FrameRate',wptr);
-    framedur=1000/frame_rate;%单位ms
+%打开窗口，设置参数
+screenNumber=max(Screen('Screens'));
+%Screen('Resolution',screenNumber,1024,768,60);
+[wptr, wRect]=Screen('OpenWindow',screenNumber, 128,[],32,2);
+Screen(wptr,'BlendFunction',GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+[cx,cy]=WindowCenter(wptr);
+frame_rate=Screen('FrameRate',wptr);
+framedur=1000/frame_rate;%单位ms
+KbName('UnifyKeyNames');
 
-    %读入图片
-    for img_read_index = 1:20
-        pic(img_read_index) = Screen('MakeTexture', wptr, imread( ['pic\', num2str(img_read_index),'.png']) );
-    end
-    
-    %设置指导语
-    start_text = '欢迎您参加本次实验\n\n';
-    end_text = '实验结束！\n\n感谢您的参与！';
+% 字体
+Screen('TextSize',wptr,40);
+Screen('TextFont',wptr,'Simsun');
 
-    %生成参数矩阵
-    para_subtasktype = [1 2]; % 1-视觉 2-听觉
-    para_color = [1 2 3]; % 1-红 2-绿 3-蓝
-    para_match = [1 2 3 3]; %1-same 2-different 3-not match; noMatch = same + different
-    para_posi = [1 2]; % 1-上 2-下
- 
-    [x0,x1,x2,x3]=ndgrid( para_simil, para_color, para_match,para_posi );%生成参数组合矩阵
-    para_temp=[x0(:),x1(:),x2(:),x3(:)];%所有条件组合,生成2*3*4*2=48种基本情况的参数矩阵，第1列是否相似，第2列颜色，第3列匹配情况，第4列靶子出现的位置
+%读入图片
+for img_read_index = 1:20
+    pic(img_read_index) = Screen('MakeTexture', wptr, imread( ['pic\', num2str(img_read_index),'.png']) );
+end
 
-    % for r = 1:48
-    %     if para_temp(r,2)==0
-    %        para_temp(r,3) = 0;
-    %     end
-    % end
-    %生成所有试次的参数矩阵
-    global para;
-    global para_practice; %全局的参数矩阵
-    para = [];
-    para_practice = Shuffle(para_temp);
-    for i = 1 : total/48
-        para = [para; Shuffle(para_temp)];
-    end
+%设置指导语
+start_text = '欢迎您参加本次实验\n\n';
+judge_text = '请按下相应的数字键选择实验开始时红框标注的动物\n\n'
+end_text = '实验结束！\n\n感谢您的参与!';
 
-    %输出文件打开-------------------------------------
-    filefind=strcat('results\','FPS_MIT_',char(subID),'_',char(name),'_',Gender,'.csv');
-    if exist(filefind,'file')==0
-        fid=fopen(['results\','FPS_MIT_',char(subID),'_',char(name),'_',Gender,'.csv'],'w');
-    else
-        filev=2;
-        while true
-            filefind=strcat('results\','FPS_MIT_',char(subID),'_',char(name),'_',Gender,'(',num2str(filev),')','.csv');
-            if exist(filefind,'file')==0
-                fid=fopen(['results\','FPS_MIT_',char(subID),'_',char(name),'_',Gender,'(',num2str(filev),')','.csv'],'w');
-                break;
-            else
-                filev=filev+1;
-            end
+% for r = 1:48
+%     if para_temp(r,2)==0
+%        para_temp(r,3) = 0;
+%     end
+% end
+%生成所有试次的参数矩阵
+% 输出文件打开-------------------------------------
+filefind=strcat('results\','FPS_MIT_',char(subID),'.csv');
+if exist(filefind,'file')==0
+    fid=fopen(['results\','FPS_MIT_',char(subID),'.csv'],'w');
+else
+    filev=2;
+    while true
+        filefind=strcat('results\','FPS_MIT_',char(subID),'(',num2str(filev),')','.csv');
+        if exist(filefind,'file')==0
+            fid=fopen(['results\','FPS_MIT_',char(subID),'(',num2str(filev),')','.csv'],'w');
+            break;
+        else
+            filev=filev+1;
         end
     end
-    fprintf(fid,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\r\n','ID','SubName','SubSex','SubAge','IsMasterPlayer','SubTask','Order','NumOfCorrectIdentity','NumOfCorrectPosition','IsSubTaskCorrect');
-    
-    %% 实验前指导语
-    Screen('TextSize',wptr,40);
-    Screen('TextFont',wptr,'Simsun');
-    DrawFormattedText(wptr,double(start_text),'center','center',[0,0,0]);
-    Screen('Flip',wptr);
-    KbWait;
+end
+fprintf(fid,'%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\r\n','ID','SubName','SubSex','SubAge','IsMasterPlayer','SubTask','Order','NumOfCorrectIdentity','NumOfCorrectPosition','IsSubTaskCorrect');
 
-    %% 练习实验
-    practice(wptr, fid);
-    WaitSecs(1);
+%% 实验前指导语
+Screen('TextSize',wptr,40);
+Screen('TextFont',wptr,'Simsun');
+DrawFormattedText(wptr,double(start_text),'center','center',[0,0,0]);
+Screen('Flip',wptr);
+KbWait;
 
-    %% 正式实验
-    formal(wptr, fid);
+for index = 1:8
+    number_present{index} = Screen('MakeTexture',wptr, imread(['pic\number', num2str(index), '.png']));
+end
 
-    %关闭数据文件
+animal = {'斑马', '大象', '大嘴鸟', '袋鼠', '鳄鱼', '公鸡', '狐狸', '浣熊', '狼狗', '老虎', '骆驼', '山羊', '狮子', '松鼠', '兔子', '鸵鸟', '乌龟', '犀牛', '猩猩', '长颈鹿'};
+key = {'1!','2@','3#','4$','5%','6^','7&','8*'};
+
+%% 正式实验
+for i = 1:3
+    for ii = 1:40
+        %随机8个数字
+        subtask_number=randperm(9,3);
+        
+        pic_select = randperm(20,8); %随机选出八张图片
+        for pic_index = 1:8
+            pic_x = randperm( wRect(3) - 80, 1);
+            pic_y = randperm( wRect(4) - 80, 1 );
+            %每张图片的位置
+            pic_posi{pic_index} = [pic_x, pic_y, pic_x + 80, pic_y + 80];
+            %绘制图片
+            [img, map, alpha] = imread(['pic\', num2str(pic_select(pic_index)), '.png']);
+            img(:,:,4)=alpha;
+            pic_present{pic_index} = Screen('MakeTexture',wptr, img);
+        end
+        
+        % 第一次呈现图片
+        for present_index = 1:8
+            Screen('DrawTexture', wptr, pic_present{present_index}, [],  pic_posi{present_index});
+        end
+        % Screen('Flip', wptr);
+        
+        % 打标记的4张图片
+        pic_red = randperm(8, 4);
+        for red_index = 1:4
+            Screen('Framerect', wptr, [255, 0, 0], pic_posi{pic_red(red_index)} ); %画红线框
+        end
+        
+        Screen('Flip', wptr);
+        WaitSecs(4);
+        
+        % 开始随机运动，即更新位置，然后重新画图，并Flip
+        
+        for motion_first1 = 1:frame_rate
+            for pic_index = 1:8
+                motion_angle = pi*2*randperm(360, 8)/360;
+                distance_x = 50*cos(motion_angle(pic_index));
+                distance_y = 50*sin(motion_angle(pic_index));
+                if pic_posi{pic_index}(1) + distance_x <=0 || pic_posi{pic_index}(1) + distance_x >= wRect(3)-80
+                    distance_x = -distance_x;
+                end
+                if pic_posi{pic_index}(2) + distance_y <= 0 || pic_posi{pic_index}(2) + distance_y >= wRect(4) - 80
+                    distance_y = -distance_y;
+                end
+                pic_posi{pic_index}(1) = pic_posi{pic_index}(1) + distance_x;
+                pic_posi{pic_index}(2) = pic_posi{pic_index}(2) + distance_y;
+                pic_posi{pic_index}(3) = pic_posi{pic_index}(1) + 80;
+                pic_posi{pic_index}(4) = pic_posi{pic_index}(2) + 80;
+            end
+            for present_index = 1:8
+                Screen('DrawTexture', wptr, pic_present{present_index}, [],  pic_posi{present_index});
+            end
+            
+            Screen('Flip', wptr);
+        end
+        
+        
+        % motion_time =  round(randfixedsum(50, 8, time_left*frame_rate, 1, time_left * frame_rate));
+        % for i = 1:8
+        %     motion_time(50, i) = time_left*frame_rate - sum(motion_time(1:49, i));
+        % end
+        
+        % for i = 1:8
+        %     for ii = 2:50
+        %         motion_time(ii, i) = motion_time(ii, i) + motion_time(ii - 1, i);
+        %     end
+        % end
+        for j = 1:3
+            [y,Fs]=audioread(['audio\', num2str(subtask_number(j)),'.mp3']);
+            sound(y,Fs);
+            for motion_second = 1:frame_rate
+            
+                for pic_index = 1:8
+                    motion_angle = pi*2*randperm(360, 8)/360;
+                    distance_x = 40*cos(motion_angle(pic_index));
+                    distance_y = 40*sin(motion_angle(pic_index));
+                    if pic_posi{pic_index}(1) + distance_x <=0 || pic_posi{pic_index}(1) + distance_x >= wRect(3)-80
+                        distance_x = -distance_x;
+                    end
+                    if pic_posi{pic_index}(2) + distance_y <= 0 || pic_posi{pic_index}(2) + distance_y >= wRect(4) - 80
+                        distance_y = -distance_y;
+                    end
+                    pic_posi{pic_index}(1) = pic_posi{pic_index}(1) + distance_x;
+                    pic_posi{pic_index}(2) = pic_posi{pic_index}(2) + distance_y;
+                    pic_posi{pic_index}(3) = pic_posi{pic_index}(1) + 80;
+                    pic_posi{pic_index}(4) = pic_posi{pic_index}(2) + 80;
+                    
+                end
+                for present_index = 1:8
+                    Screen('DrawTexture', wptr, pic_present{present_index}, [],  pic_posi{present_index});
+                end
+                % 中间次任务
+                type = mod(subID,2);
+                if type==1
+                    Screen('Framerect', wptr); %画线框
+                    DrawFormattedText(wptr,num2str(subtask_number(j)),'center','center',[255,255,255]);
+                end
+                
+                if type==2
+                    % Screen('Framerect', wptr); %画线框
+                    
+                end
+                
+                [secs, keyCode, deltaSecs] = KbWait([],[] , GetSecs+0.005);
+                if sum(keyCode)~=0
+                    if (mod(subtask_number(j),3) == 0 && keyCode(KbName('LeftArrow'))) || (mod(subtask_number(j),3) ~= 0 && keyCode(KbName('RightArrow')))
+                        correction(j) = correction(j)+1;
+                    elseif (mod(subtask_number(j),3) == 0 && keyCode(KbName('RightArrow'))) || (mod(subtask_number(j),3) ~= 0 && keyCode(KbName('LeftArrow')))
+
+                    else
+                        if keyCode(KbName('ESCAPE'))
+                            ShowCursor;
+                            sca;
+                        end
+
+                    end
+                end
+                Screen('Flip', wptr);
+            end
+        end
+        
+        time_left = randi([1,3]);
+        for jjj = 1:time_left*frame_rate
+            for pic_index = 1:8
+                motion_angle = pi*2*randperm(360, 8)/360;
+                distance_x = 40*cos(motion_angle(pic_index));
+                distance_y = 40*sin(motion_angle(pic_index));
+                if pic_posi{pic_index}(1) + distance_x <=0 || pic_posi{pic_index}(1) + distance_x >= wRect(3)-80
+                    distance_x = -distance_x;
+                end
+                if pic_posi{pic_index}(2) + distance_y <= 0 || pic_posi{pic_index}(2) + distance_y >= wRect(4) - 80
+                    distance_y = -distance_y;
+                end
+                pic_posi{pic_index}(1) = pic_posi{pic_index}(1) + distance_x;
+                pic_posi{pic_index}(2) = pic_posi{pic_index}(2) + distance_y;
+                pic_posi{pic_index}(3) = pic_posi{pic_index}(1) + 80;
+                pic_posi{pic_index}(4) = pic_posi{pic_index}(2) + 80;
+            end
+            for present_index = 1:8
+                Screen('DrawTexture', wptr, pic_present{present_index}, [],  pic_posi{present_index});
+            end
+            
+            Screen('Flip', wptr);
+        end
+        
+        % 最终的判断
+        
+
+        for iii = 1:4
+            DrawFormattedText(wptr,double(animal{pic_select(pic_red(iii))}),'center','center',[0,0,0]);
+            Screen('Flip', wptr);
+
+            for index = 1:8
+                Screen('DrawTexture', wptr, number_present{index}, [], pic_posi{index});
+            end
+            Screen('Flip',wptr);
+            [~, keyCode] = KbWait();
+            keyRecord{iii} = keyCode;
+        end
+
+        identity_correct = 0;
+        position_correct = 0;
+
+        for check_index = 1:4
+            if keyRecord{check_index}(KbName([key{pic_red(check_index)}]))
+                identity_correct  = identity_correct + 1;
+            end
+        end
+        
+        for check_index = 1:4
+            if keyRecord{1}( KbName([key{pic_red(check_index)}]) ) || keyRecord{2}( KbName([key{pic_red(check_index)}]) ) || keyRecord{3}( KbName([key{pic_red(check_index)}]) ) || keyRecord{4}( KbName([key{pic_red(check_index)}]) )
+                position_correct = position_correct + 1;
+            end
+        end
+
+        % 数据记录
+        
+
+    end
+end
+
+% 关闭数据文件
     fclose(fid);
 
-    %% 结束语
-    Screen('TextSize',wptr,40);
-    Screen('TextFont',wptr,'Simsun');
-    DrawFormattedText(wptr,double(end_text),'center','center',[0,0,0]);
-    Screen('Flip',wptr);
-    WaitSecs(1);
-    ShowCursor;
-    Screen('CloseAll');
+%% 结束语
 
-end
-    
-
-
-function practice(wptr, fid)
-    [cx,cy]=WindowCenter(wptr);
-
-    
-
-    
-end
-
-
-function formal(wptr, fid)
-    [cx,cy]=WindowCenter(wptr);
-    global name;
-    global Gender;
-    global age;
-    global type;
-
-
-
-    for i = 1:3
-        for ii = 1:40
-            %随机8个数字
-            pic_select = randperm(20,8); %随机选出八张图片
-            posi_pic = %每张图片的位置
-            %这样子呈现图片
-            for pic_index = 1:8
-                % pic_present(pic_index) = getfield(pic,);
-                
-            end
-        end
-    end
-
-
+DrawFormattedText(wptr,double(end_text),'center','center',[0,0,0]);
+Screen('Flip',wptr);
+WaitSecs(1);
+ShowCursor;
+Screen('CloseAll');
 
 end
